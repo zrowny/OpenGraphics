@@ -55,14 +55,7 @@ class SimpleOperator(bpy.types.Operator):
             subprocess.call(args)
             
             args = []
-            args.append("magick.exe")
-            args.append(filePath)
-            args.append("-background")
-            args.append("'sRGB(57,59,57)'")
-            args.append("-alpha")
-            args.append("Background")
-            args.append(filePath)
-            subprocess.call(args)
+            subprocess.run("powershell magick.exe " + filePath + " -background 'sRGB(57,59,57)' -alpha Background " + filePath)
             
             args = []
             subprocess.run("powershell magick.exe convert " + filePath + " -fill 'sRGB(57,59,57)' -draw 'color 1,1 reset' " + testPath)
@@ -73,7 +66,7 @@ class SimpleOperator(bpy.types.Operator):
             mask = outputPath + "mask.png"
             args.append(mask)
             args.append("-threshold")
-            args.append("50%")
+            args.append("5%")
             args.append(mask)
             subprocess.call(args)
             
@@ -87,16 +80,16 @@ class SimpleOperator(bpy.types.Operator):
             args.append(filePath)
             subprocess.call(args)
             
-            #args = []
-            #args.append("magick.exe")
-            #args.append("composite")
-            #args.append("-compose")
-            #args.append("multiply")
-            #mask = outputPath + "mask.png"
-            #args.append(mask)
-            #args.append(filePath)
-            #args.append(filePath)
-            #subprocess.call(args)
+            args = []
+            args.append("magick.exe")
+            args.append("composite")
+            args.append("-compose")
+            args.append("multiply")
+            mask = outputPath + "mask.png"
+            args.append(mask)
+            args.append(filePath)
+            args.append(filePath)
+            subprocess.call(args)
             
             args = []
             subprocess.run("powershell magick.exe " + filePath + " -fuzz 0% -opaque 'sRGB(57,59,57)' " + filePath)
