@@ -28,8 +28,8 @@ class SimpleOperator(bpy.types.Operator):
         collection = bpy.data.collections['Rig']
         rigOrigin = collection.all_objects['RigOrigin']
         
-        outputPath = bpy.path.abspath("//output\\")
-        palette = bpy.path.abspath("//palettes\\")
+        outputPath = bpy.path.abspath("//output//")
+        palette = bpy.path.abspath("//palettes//")
         paletteFile = palette + "WTRCYAN.bmp"
         
         
@@ -41,6 +41,7 @@ class SimpleOperator(bpy.types.Operator):
         
         for index in range(4):
             filePath = outputPath + str(index) + ".png"
+            testPath = outputPath + "test" + str(index) + ".png"
             mask = outputPath + "mask.png"
             outputFile = outputPath + str(index) + ".bmp"
             args = []
@@ -59,9 +60,12 @@ class SimpleOperator(bpy.types.Operator):
             args.append("-background")
             args.append("'sRGB(57,59,57)'")
             args.append("-alpha")
-            args.append("Remove")
+            args.append("Background")
             args.append(filePath)
             subprocess.call(args)
+            
+            args = []
+            subprocess.run("powershell magick.exe convert " + filePath + " -fill 'sRGB(57,59,57)' -draw 'color 1,1 reset' " + testPath)
             
             args = []
             args.append("magick.exe")
@@ -77,22 +81,25 @@ class SimpleOperator(bpy.types.Operator):
             args.append("magick.exe")
             args.append("composite")
             args.append("-compose")
-            args.append("multiply")
-            mask = outputPath + "mask.png"
-            args.append(mask)
+            args.append("src-over")
             args.append(filePath)
+            args.append(testPath)
             args.append(filePath)
             subprocess.call(args)
             
+            #args = []
+            #args.append("magick.exe")
+            #args.append("composite")
+            #args.append("-compose")
+            #args.append("multiply")
+            #mask = outputPath + "mask.png"
+            #args.append(mask)
+            #args.append(filePath)
+            #args.append(filePath)
+            #subprocess.call(args)
+            
             args = []
-            args.append("magick.exe")
-            args.append(filePath)
-            args.append("-fuzz")
-            args.append("0%")
-            args.append("-opaque")
-            args.append("'sRGB(57,59,57)'")
-            args.append(filePath)
-            subprocess.call(args)
+            subprocess.run("powershell magick.exe " + filePath + " -fuzz 0% -opaque 'sRGB(57,59,57)' " + filePath)
             
             args = []
             args.append("magick.exe")
