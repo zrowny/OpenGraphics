@@ -9,15 +9,73 @@ import mathutils
 import subprocess
 from math import radians
 
-class SimpleOperator(bpy.types.Operator):
+class OpenRCT2Operator(bpy.types.Operator):
     """Tooltip"""
-    bl_idname = "objects.test"
+    bl_idname = "objects.openrct2"
     bl_label = "Render"
 
     #@classmethod
     #def poll(cls, context):
         #return 0
 
+    def setHoldout(self, greenMasked, purpleMasked, noRemapMasked):
+        holdout = bpy.data.materials.get("HoldOut")
+        greenMaterials = []
+        for obj in bpy.data.collections["Green"].all_objects:
+            objectMaterials = []
+            for i in range(len(obj.data.materials)):
+                objectMaterials.append(obj.data.materials[i].copy())  
+                if greenMasked == True:
+                    obj.data.materials[i] = holdout
+            greenMaterials.append(objectMaterials)
+        
+        purpleMaterials = []
+        for obj in bpy.data.collections["Purple"].all_objects:
+            objectMaterials = []
+            for i in range(len(obj.data.materials)):
+                objectMaterials.append(obj.data.materials[i].copy())
+                if purpleMasked == True:
+                    obj.data.materials[i] = holdout
+            purpleMaterials.append(objectMaterials)
+                    
+        noRemapMaterials = []
+        for obj in bpy.data.collections["NoRemap"].all_objects:
+            objectMaterials = []
+            for i in range(len(obj.data.materials)):
+                objectMaterials.append(obj.data.materials[i].copy())
+                if noRemapMasked == True:
+                    obj.data.materials[i] = holdout
+            noRemapMaterials.append(objectMaterials)
+                    
+        return [greenMaterials, purpleMaterials, noRemapMaterials]
+    
+    def restoreMaterials(self, materials):
+        greenMaterials = materials[0]
+        purpleMaterials = materials[1]
+        noremapMaterials = materials[2]
+        
+        index = 0
+        for obj in bpy.data.collections["Green"].all_objects:
+            objectMaterials = greenMaterials[index]
+            for i in range(len(obj.data.materials)):
+                obj.data.materials[i] = objectMaterials[i]
+            index = index + 1
+        
+        index = 0
+        for obj in bpy.data.collections["Purple"].all_objects:
+            objectMaterials = purpleMaterials[index]
+            for i in range(len(obj.data.materials)):
+                obj.data.materials[i] = objectMaterials[i]
+            index = index + 1
+        
+        index = 0
+        for obj in bpy.data.collections["NoRemap"].all_objects:
+            objectMaterials = noremapMaterials[index]
+            for i in range(len(obj.data.materials)):
+                obj.data.materials[i] = objectMaterials[i]
+            index = index + 1
+        
+        
     def execute(self, context):
         #set the output path
         
@@ -32,61 +90,60 @@ class SimpleOperator(bpy.types.Operator):
         palette = bpy.path.abspath("//palettes//")
         paletteFile = palette + "WTRCYAN.bmp"
         renders = []
-        
+        ditherThreshold = bpy.context.scene.ditherThreshold
         
         #rotate 90 degrees all objects in rig
-        for index in range(4):
-            bpy.data.scenes[0].render.filepath = bpy.path.abspath("//output//" + "render" + str(index) + ".png")
-            if context.scene.renderBox == True:
-                bpy.ops.render.render(write_still=True)
-            rigOrigin.rotation_euler[2] += radians(90)
-            renders.append(bpy.data.scenes[0].render.filepath)
         
         for index in range(4):
-            filePath = outputPath + str(index) + ".png"
-            testPath = outputPath + "test" + str(index) + ".png"
-            mask = outputPath + "mask.png"
-            outputFile = outputPath + str(index) + ".bmp"
+            #add the no-remap, green layer and purple layers together
+            #first, remap the no-remap to the full palette and set hold out for green and purple layers
+            bpy.ops.render.render(write_still=True, layer="NoRemap")
+            paletteFile = bpy.path.abspath("//palettes//WTRCYAN.bmp")
+            filePath = bpy.path.abspath("//output//noremap//Image0001.png")
+            outputPath = bpy.path.abspath("//output//noremap.bmp")
+            subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
             
-            args = []
-            subprocess.run("powershell magick.exe " + renders[index] + " -background 'sRGB(57,59,57)' -alpha Extract " + mask)
+            bpy.ops.render.render(write_still=True, layer="Green")
+            paletteFile = bpy.path.abspath("//palettes//paletteremap1.png")
+            filePath = bpy.path.abspath("//output//green//Image0001.png")
+            outputPath = bpy.path.abspath("//output//green.bmp")
+            subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
             
-            args = []
-            subprocess.run("powershell magick.exe " + renders[index] + " -background 'sRGB(57,59,57)' -alpha Background " + filePath)
+            bpy.ops.render.render(write_still=True, layer="Purple")
+            paletteFile = bpy.path.abspath("//palettes//paletteremap2.png")
+            filePath = bpy.path.abspath("//output//purple//Image0001.png")
+            outputPath = bpy.path.abspath("//output//purple.bmp")
+            subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
             
-            args = []
-            subprocess.run("powershell magick.exe convert " + mask + " -threshold " + context.scene.my_string_prop + "% " + mask)
+            #sum those 3 images together
+            noRemap = bpy.path.abspath("//output//noremap.bmp")
+            green = bpy.path.abspath("//output//green.bmp")
+            purple = bpy.path.abspath("//output//purple.bmp")
+            outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
+            subprocess.run("powershell magick.exe -compose add " + green + " " + purple + " -composite " + outputPath);
             
-            args = []
-            subprocess.run("powershell magick.exe convert " + filePath + " -fill 'sRGB(57,59,57)' -draw 'color 1,1 reset' " + testPath)
+            #make sure the green and purple layers are only on the 2 color maps
+            paletteFile = bpy.path.abspath("//palettes//purplepink.png")
+            filePath = bpy.path.abspath("//output//" + str(index) + ".bmp")
+            outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
+            subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
             
-            #subprocess.run("powershell magick.exe composite -compose src-over " + filePath + " " + testPath + " " + filePath)
-            subprocess.run("powershell magick.exe composite -compose src-over " + filePath + " " + testPath + " " + filePath)
-            subprocess.run("powershell magick.exe composite -compose multiply " + mask + " " + filePath + " " + filePath)
+            #add the noremap image
+            subprocess.run("powershell magick.exe -compose add " + noRemap + " " + outputPath + " -composite " + outputPath);
+            
+            #make sure that the image is mapped in the rct2 palette
+            paletteFile = bpy.path.abspath("//palettes//palette.png")
+            filePath = bpy.path.abspath("//output//" + str(index) + ".bmp")
+            outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
+            #subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
+            
+            rigOrigin.rotation_euler[2] += radians(90)
 
-            
-            args = []
-            subprocess.run("powershell magick.exe " + filePath + " -fuzz 0% -opaque 'sRGB(57,59,57)' " + filePath)
-            
-            args = []
-            args.append("magick.exe")
-            args.append(filePath)
-            args.append("-trim")
-            args.append("-dither")
-            args.append("FloydSteinberg")
-            args.append("-define")
-            args.append("dither:diffusion-amount=30%")
-            args.append("-remap")
-            args.append(paletteFile)
-            args.append(outputFile)
-            subprocess.call(args)
-            
-            
         return {'FINISHED'}
 
-class HelloWorldPanel(bpy.types.Panel):
+class OpenRCT2Panel(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
-    bl_label = "OpenRCT2 Render"
+    bl_label = "objects.openrct2"
     bl_idname = "panel.OpenRCT2"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -94,22 +151,20 @@ class HelloWorldPanel(bpy.types.Panel):
     
 
     def draw(self, context):
-        self.layout.operator("objects.test",text="Render OpenRCT2")
+        self.layout.operator("objects.openrct2",text="Render OpenRCT2")
         col = self.layout.column(align = True)
-        col.prop(context.scene, "my_string_prop")
-        col.prop(context.scene, "renderBox")
+        col.prop(context.scene, "ditherThreshold")
         
 
 
 def register():
-    bpy.utils.register_class(SimpleOperator)
-    bpy.utils.register_class(HelloWorldPanel)
-    bpy.types.Scene.my_string_prop = bpy.props.StringProperty(name = "Alpha threshold", description = "This threshold determines how much the transparent pixels are cut out", default = "5")
-    bpy.types.Scene.renderBox = bpy.props.BoolProperty(name = "Render", default=True)
+    bpy.utils.register_class(OpenRCT2Operator)
+    bpy.utils.register_class(OpenRCT2Panel)
+    bpy.types.Scene.ditherThreshold = bpy.props.FloatProperty(name = "Dithering threshold", description = "This threshold tells how much quantization error to propagate in the dithering process", soft_min=0.0, soft_max=100.0)
 
 def unregister():
-    bpy.utils.unregister_class(HelloWorldPanel)
-    bpy.utils.unregister_class(SimpleOperator)
+    bpy.utils.unregister_class(OpenRCT2Panel)
+    bpy.utils.unregister_class(OpenRCT2Operator)
     del bpy.types.Scene.my_string_prop
 
 
