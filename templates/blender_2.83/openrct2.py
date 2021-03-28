@@ -127,7 +127,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             green = bpy.path.abspath("//output//green.bmp")
             purple = bpy.path.abspath("//output//purple.bmp")
             outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
-            subprocess.run(command + " -compose add '" + green + "' '" + purple + "' -composite '" + outputPath + "'");
+            subprocess.run(command + " -compose plus '" + green + "' '" + purple + "' -composite '" + outputPath + "'");
             
             #make sure the green and purple layers are only on the 2 color maps
             paletteFile = bpy.path.abspath("//palettes//purplepink.png")
@@ -136,7 +136,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             #add the noremap image
-            subprocess.run(command + " -compose add '" + noRemap + "' '" + outputPath + "' -composite '" + outputPath + "'");
+            subprocess.run(command + " -compose plus '" + noRemap + "' '" + outputPath + "' -composite '" + outputPath + "'");
             
             #make sure that the image is mapped in the rct2 palette
             paletteFile = bpy.path.abspath("//palettes//palette.png")
