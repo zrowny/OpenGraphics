@@ -104,10 +104,16 @@ class OpenRCT2Operator(bpy.types.Operator):
         for index in range(4):
             #add the no-remap, green layer and purple layers together
             #first, remap the no-remap to the full palette and set hold out for green and purple layers
-            bpy.ops.render.render(write_still=True, layer="NoRemap")
+            bpy.ops.render.render(write_still=True, layer="NoRemap1")
             paletteFile = bpy.path.abspath("//palettes//WTRCYAN.bmp")
-            filePath = bpy.path.abspath("//output//noremap//Image0001.png")
-            outputPath = bpy.path.abspath("//output//noremap.bmp")
+            filePath = bpy.path.abspath("//output//noremap1//Image0001.png")
+            outputPath = bpy.path.abspath("//output//noremap1.bmp")
+            subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
+            
+            bpy.ops.render.render(write_still=True, layer="NoRemap2")
+            paletteFile = bpy.path.abspath("//palettes//WTRCYAN.bmp")
+            filePath = bpy.path.abspath("//output//noremap2//Image0001.png")
+            outputPath = bpy.path.abspath("//output//noremap2.bmp")
             subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             bpy.ops.render.render(write_still=True, layer="Green")
@@ -123,7 +129,8 @@ class OpenRCT2Operator(bpy.types.Operator):
             subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             #sum those 3 images together
-            noRemap = bpy.path.abspath("//output//noremap.bmp")
+            noRemap1 = bpy.path.abspath("//output//noremap1.bmp")
+            noRemap2 = bpy.path.abspath("//output//noremap2.bmp")
             green = bpy.path.abspath("//output//green.bmp")
             purple = bpy.path.abspath("//output//purple.bmp")
             outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
@@ -136,13 +143,8 @@ class OpenRCT2Operator(bpy.types.Operator):
             subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             #add the noremap image
-            subprocess.run(command + " -compose plus '" + noRemap + "' '" + outputPath + "' -composite '" + outputPath + "'");
-            
-            #make sure that the image is mapped in the rct2 palette
-            paletteFile = bpy.path.abspath("//palettes//palette.png")
-            filePath = bpy.path.abspath("//output//" + str(index) + ".bmp")
-            outputPath = bpy.path.abspath("//output//" + str(index) + ".bmp")
-            #subprocess.run("powershell magick.exe " + filePath + " -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap " + paletteFile + " " + outputPath)
+            subprocess.run(command + " -compose plus '" + noRemap1 + "' '" + outputPath + "' -composite '" + outputPath + "'");
+            subprocess.run(command + " -compose plus '" + noRemap2 + "' '" + outputPath + "' -composite '" + outputPath + "'");
             
             rigOrigin.rotation_euler[2] += radians(90)
 
