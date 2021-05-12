@@ -8,6 +8,7 @@ import bpy
 import mathutils
 import subprocess
 import platform
+import csv
 from math import radians
 
 class OpenRCT2Operator(bpy.types.Operator):
@@ -46,7 +47,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             command = "powershell magick"
         else:
             command = "magick"
-            
+
         #rotate 90 degrees all objects in rig
         for index in range(4):
             #add the no-remap, green layer and purple layers together
@@ -84,6 +85,7 @@ class OpenRCT2Operator(bpy.types.Operator):
                 subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             #sum those 3 images together
+            offsets = []
             for animationFrame in range(frameStart, frameEnd+1):
                 noRemap1 = bpy.path.abspath("//output//noremap1_" + str(animationFrame) + ".bmp")
                 noRemap2 = bpy.path.abspath("//output//noremap2_" + str(animationFrame) + ".bmp")
@@ -101,6 +103,31 @@ class OpenRCT2Operator(bpy.types.Operator):
                 #add the noremap image
                 subprocess.run(command + " -compose plus '" + noRemap1 + "' '" + outputPath + "' -composite '" + outputPath + "'");
                 subprocess.run(command + " -compose plus '" + noRemap2 + "' '" + outputPath + "' -composite '" + outputPath + "'");
+                
+                #get the offset and trim
+                offset = subprocess.check_output(command + " " + outputPath + ' -format "%@" info:', encoding='UTF-8')
+                subprocess.run(command + " " + outputPath + " -trim " + outputPath)
+                
+                words = offset.split('+')
+                left = int(words[1])
+                top = int(words[2])
+                
+                rzize_x = bpy.context.scene.render.resolution_x
+                rzize_y = bpy.context.scene.render.resolution_y
+                
+                centerX = left - int(rzize_x/2)
+                centerY = top - int(rzize_y/2)
+
+                offsets.append([centerX, centerY])
+            
+            #write the offsets to a csv file
+            filePath = bpy.path.abspath("//output//" + str(index) + ".csv")
+            offsetFile = open(filePath, 'w')
+            csvWriter = csv.writer(offsetFile, delimiter=',')
+            
+            for offset in offsets:
+                csvWriter.writerow([offset[0], offset[1]])
+            offsetFile.close()
             
             rigOrigin.rotation_euler[2] += radians(90)
 
