@@ -9,6 +9,7 @@ import mathutils
 import subprocess
 import platform
 import csv
+import shutil
 from math import radians
 
 class OpenRCT2Operator(bpy.types.Operator):
@@ -57,7 +58,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             for animationFrame in range(frameStart, frameEnd+1):
                 paletteFile = bpy.path.abspath("//palettes//WTRCYAN.bmp")
                 filePath = bpy.path.abspath("//output//noremap1//Image" + str(animationFrame).zfill(4) + ".png")
-                outputPath = bpy.path.abspath("//output//noremap1_" + str(animationFrame) + ".bmp")
+                outputPath = bpy.path.abspath("//output//noremap1//" + str(animationFrame) + ".bmp")
                 subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             bpy.ops.render.render(write_still=not isAnimation, animation=isAnimation, layer="NoRemap2")
@@ -65,7 +66,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             for animationFrame in range(frameStart, frameEnd+1):
                 paletteFile = bpy.path.abspath("//palettes//WTRCYAN.bmp")
                 filePath = bpy.path.abspath("//output//noremap2//Image" + str(animationFrame).zfill(4) + ".png")
-                outputPath = bpy.path.abspath("//output//noremap2_" + str(animationFrame) + ".bmp")
+                outputPath = bpy.path.abspath("//output//noremap2//" + str(animationFrame) + ".bmp")
                 subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             bpy.ops.render.render(write_still=not isAnimation, animation=isAnimation, layer="Green")
@@ -73,7 +74,7 @@ class OpenRCT2Operator(bpy.types.Operator):
             for animationFrame in range(frameStart, frameEnd+1):
                 paletteFile = bpy.path.abspath("//palettes//paletteremap1.png")
                 filePath = bpy.path.abspath("//output//green//Image" + str(animationFrame).zfill(4) + ".png")
-                outputPath = bpy.path.abspath("//output//green" + str(animationFrame) + ".bmp")
+                outputPath = bpy.path.abspath("//output//green//" + str(animationFrame) + ".bmp")
                 subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             bpy.ops.render.render(write_still=not isAnimation, animation=isAnimation, layer="Purple")
@@ -81,16 +82,16 @@ class OpenRCT2Operator(bpy.types.Operator):
             for animationFrame in range(frameStart, frameEnd+1):
                 paletteFile = bpy.path.abspath("//palettes//paletteremap2.png")
                 filePath = bpy.path.abspath("//output//purple//Image" + str(animationFrame).zfill(4) + ".png")
-                outputPath = bpy.path.abspath("//output//purple" + str(animationFrame) + ".bmp")
+                outputPath = bpy.path.abspath("//output//purple//" + str(animationFrame) + ".bmp")
                 subprocess.run(command + " '" + filePath + "' -dither FloydSteinberg -define dither:diffusion-amount=" + str(ditherThreshold) + "% -remap '" + paletteFile + "' '" + outputPath + "'")
             
             #sum those 3 images together
             offsets = []
             for animationFrame in range(frameStart, frameEnd+1):
-                noRemap1 = bpy.path.abspath("//output//noremap1_" + str(animationFrame) + ".bmp")
-                noRemap2 = bpy.path.abspath("//output//noremap2_" + str(animationFrame) + ".bmp")
-                green = bpy.path.abspath("//output//green" + str(animationFrame) + ".bmp")
-                purple = bpy.path.abspath("//output//purple" + str(animationFrame) + ".bmp")
+                noRemap1 = bpy.path.abspath("//output//noremap1//" + str(animationFrame) + ".bmp")
+                noRemap2 = bpy.path.abspath("//output//noremap2//" + str(animationFrame) + ".bmp")
+                green = bpy.path.abspath("//output//green//" + str(animationFrame) + ".bmp")
+                purple = bpy.path.abspath("//output//purple//" + str(animationFrame) + ".bmp")
                 outputPath = bpy.path.abspath("//output//" + str(index) + "_" + str(animationFrame) + ".bmp")
                 subprocess.run(command + " -compose plus '" + green + "' '" + purple + "' -composite '" + outputPath + "'");
             
@@ -130,6 +131,13 @@ class OpenRCT2Operator(bpy.types.Operator):
             offsetFile.close()
             
             rigOrigin.rotation_euler[2] += radians(90)
+        
+        #delete the temporary folders once the rendering is done
+        shutil.rmtree(bpy.path.abspath("//output//noremap1//"))
+        shutil.rmtree(bpy.path.abspath("//output//noremap2//"))
+        shutil.rmtree(bpy.path.abspath("//output//green//"))
+        shutil.rmtree(bpy.path.abspath("//output//purple//"))
+        shutil.rmtree(bpy.path.abspath("//output//TEMP//"))
 
         return {'FINISHED'}
 
